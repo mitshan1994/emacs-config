@@ -15,9 +15,11 @@
 (add-to-list 'default-frame-alist '(font . "Ubuntu Mono-14" ))
 
 ;; package website BEGIN
+(require 'package)
 (setq package-archives '(("gnu" . "https://elpa.gnu.org/packages/")
                          ("marmalade" . "https://marmalade-repo.org/packages/")
                          ("melpa" . "https://melpa.org/packages/")))
+(package-initialize)
 ;; package website END
 
 ;; open header files as c++ mode
@@ -37,17 +39,3 @@
 ;; load path of files
 (add-to-list 'load-path "~/.emacs.d/lisp/")
 
-;; rtags BEGIN
-(load "rtags") ;; best not to include the ending ".el"
-;; rtags END
-
-;; markdown-mode BEGIN
-(autoload 'markdown-mode "markdown-mode"
-  "Major mode for editing Markdown files" t)
-(add-to-list 'auto-mode-alist '("\\.markdown\\'" . markdown-mode))
-(add-to-list 'auto-mode-alist '("\\.md\\'" . markdown-mode))
-
-(autoload 'gfm-mode "markdown-mode"
-  "Major mode for editing GitHub Flavoured Markdown files" t)
-(add-to-list 'auto-mode-alist '("README\\.md\\'" . gfm-mode))
-;; markdown-mode END

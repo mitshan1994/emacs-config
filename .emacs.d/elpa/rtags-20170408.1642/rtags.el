@@ -5,7 +5,7 @@
 ;; Author: Jan Erik Hanssen <jhanssen@gmail.com>
 ;;         Anders Bakken <agbakken@gmail.com>
 ;; URL: http://rtags.net
-;; Package-Version: 20170404.1122
+;; Package-Version: 20170408.1642
 ;; Version: 2.9
 
 ;; This file is not part of GNU Emacs.
@@ -64,6 +64,7 @@
 (declare-function popup-tip "ext:popup" t)
 (declare-function helm "ext:helm" t)
 (declare-function ivy-rtags-read "ext:ivy" t)
+(declare-function package-desc-dir "ext:package" t)
 (declare-function helm-rtags-get-candidate-line 'rtags (candidate))
 
 
@@ -71,6 +72,7 @@
 ;; Constants
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defconst rtags-protocol-version 122)
+(defconst rtags-package-version "2.9")
 (defconst rtags-popup-available (require 'popup nil t))
 (defconst rtags-supported-major-modes '(c-mode c++-mode objc-mode) "Major modes RTags supports.")
 (defconst rtags-verbose-results-delimiter "------------------------------------------")
@@ -1018,6 +1020,9 @@ to case differences."
             (and (file-executable-p file) file))
           (let ((file (expand-file-name exe (concat rtags-path "/bin/"))))
             (and (file-executable-p file) file))))
+        ((let* ((install-path (rtags-package-install-path))
+                (file (and install-path (concat install-path "rtags-" rtags-package-version "/bin/" exe))))
+           (and file (file-executable-p file) file)))
         (t (executable-find exe))))
 
 (defun rtags-remove-keyword-params (seq)
@@ -4897,6 +4902,78 @@ the user enter missing field manually."
              "[ \t\n]+" " "
              (replace-regexp-in-string "\n" " " doc)))))))
 
+(defun rtags-package-install-path ()
+  (when (boundp 'package-alist)
+    (let ((pkg (cadr (assq 'rtags package-alist))))
+      (and pkg (concat (package-desc-dir pkg) "/")))))
+
+(defconst rtags-install-buffer-name "*RTags Install*")
+(defvar rtags-install-process nil)
+(defun rtags-install-process-filter (process output)
+  (with-current-buffer (process-buffer process)
+    (let ((start (point-max)))
+      (goto-char (point-max))
+      (let ((buffer-read-only nil))
+        (insert (replace-regexp-in-string "\r" "\n" output))))))
+
+(defun rtags-install-process-sentinel (process event)
+  (let ((status (process-status process)))
+    (cond ((eq status 'exit)
+           (message "RTags is now installed in %s"
+                    (with-current-buffer (process-buffer process)
+                      default-directory))
+           (kill-buffer (process-buffer process)))
+          ((memq status '(signal closed failed))
+           (message "RTags failed to install")
+           (switch-to-buffer (process-buffer process)))
+          (t nil))))
+
+(defun rtags-install (&optional dir)
+  (interactive "P")
+  (when (cond ((not (processp rtags-install-process)))
+              ((memq (process-status rtags-install-process) '(exit signal closed failed)))
+              ((and (y-or-n-p "RTags is already installing. Do you want to abort that install?")
+                    (or (kill-process rtags-install-process) t)))
+              (t (switch-to-buffer (get-buffer rtags-install-buffer-name)) nil))
+    (cond ((stringp dir))
+          ((and (not dir) (setq dir (rtags-package-install-path))))
+          (t (setq dir (read-directory-name "RTags install dir: "))))
+    (unless dir
+      (error "Nowhere to install"))
+    (unless (file-directory-p dir)
+      (make-directory dir))
+    (let ((default-directory dir))
+      (with-temp-buffer
+        (insert "#!/bin/bash\n"
+                (format "FILE=\"rtags-%s.tar.bz2\"\n" rtags-package-version)
+                "URL=\"https://andersbakken.github.io/rtags-releases/$FILE\"\n"
+                "ARGS=\"--progress -L -o $FILE\"\n"
+                "[ -e \"$FILE\" ] && ARGS=\"$ARGS -C -\"\n"
+                "ARGS=\"$ARGS $URL\"\n"
+                "echo \"Downloading rtags from $URL\"\n"
+                "if ! curl $ARGS; then\n"
+                "    echo \"Failed to download $FILE from $URL\" >&2\n"
+                "    exit 1\n"
+                "fi\n"
+                "\n"
+                "if ! tar xfj \"$FILE\"; then\n"
+                "    echo \"Failed to untar $FILE\" >&2\n"
+                "    rm \"$FILE\"\n"
+                "    exit 1\n"
+                "fi\n"
+                "\n"
+                "cd \"`echo $FILE | sed -e 's,\.tar.bz2,,'`\"\n"
+                "cmake .\n"
+                "make\n")
+        (write-region (point-min) (point-max) "install-rtags.sh"))
+      (switch-to-buffer (rtags-get-buffer "*RTags install*"))
+      (setq buffer-read-only t)
+      (setq rtags-install-process (start-process "*RTags install*" (current-buffer) "bash" (concat dir "/install-rtags.sh")))
+      (set-process-sentinel rtags-install-process 'rtags-install-process-sentinel)
+      (set-process-filter rtags-install-process 'rtags-install-process-filter))))
+
+
 (provide 'rtags)
+
 
 ;;; rtags.el ends here
