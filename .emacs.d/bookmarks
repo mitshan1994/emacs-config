@@ -2,4 +2,14 @@
 ;;; This format is meant to be slightly human-readable;
 ;;; nevertheless, you probably don't want to edit it.
 ;;; -*- End Of Bookmark File Format Version Stamp -*-
-()
+(("RTags_1"
+ (filename . "~/programming/cpp/games/SFML_learning/snake/snake.cc")
+ (front-context-string . "HandleInput(sf::")
+ (rear-context-string . "head);\n    void ")
+ (position . 959))
+("RTags_0"
+ (filename . "~/programming/cpp/games/SFML_learning/snake/snake.cc")
+ (front-context-string . "HandleInput(sf::")
+ (rear-context-string . "void SnakeGame::")
+ (position . 5082))
+)

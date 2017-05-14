@@ -10,9 +10,13 @@
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- )
+ '(default ((t (:family "Ubuntu Mono" :foundry "DAMA" :slant normal :weight normal :height 158 :width normal)))))
 
-(add-to-list 'default-frame-alist '(font . "Ubuntu Mono-14" ))
+
+(add-to-list 'default-frame-alist '(font . "Ubuntu Mono-16" ))
+
+;; show column number
+(setq column-number-mode t)
 
 ;; package website BEGIN
 (require 'package)
@@ -39,3 +43,18 @@
 ;; load path of files
 (add-to-list 'load-path "~/.emacs.d/lisp/")
 
+;; don't produce temporary files
+(setq make-backup-files nil)
+
+;; rtags shortcuts  BEGIN
+(global-set-key (kbd "M-.") 'rtags-find-symbol-at-point)
+(global-set-key (kbd "M-,") 'rtags-find-symbol)
+;; rtags shortcuts  END
+
+;; Neo tree BEGIN
+(global-set-key [f8] 'neotree-toggle)
+;; Neo tree END
+
+;; CC Mode shortcuts BEGIN
+
+;; CC Mode shortcuts END
